@@ -1220,9 +1220,13 @@ export default function ChatAgent({ mode = 'programmer', sessionId = 'default', 
   // Strip data berat (base64 gambar) biar gak jebolin kuota localStorage.
   React.useEffect(() => {
     try {
-      const lite = messages.slice(-50).map(m => m.attachments
-        ? { ...m, attachments: m.attachments.map(a => ({ type: a.type, name: a.name })) }
-        : m);
+      // PAKSA RINGAN: simpan 30 pesan, buang muatan berat dari steps (diff bisa 60KB/file,
+      // output terminal panjang) — localStorage jebol pelan-pelan & tiap render makin berat.
+      const lite = messages.slice(-30).map(m => ({
+        ...m,
+        ...(m.attachments ? { attachments: m.attachments.map(a => ({ type: a.type, name: a.name })) } : {}),
+        ...(m.steps ? { steps: m.steps.slice(0, 40).map(({ diff, output, ...s }) => s) } : {}),
+      }));
       localStorage.setItem(storageKey, JSON.stringify(lite));
     } catch {}
   }, [messages, storageKey]);
@@ -1963,6 +1967,8 @@ export default function ChatAgent({ mode = 'programmer', sessionId = 'default', 
       if (/lsof\s+-ti:?\d+\s*\|\s*xargs\s+kill/.test(low)) return true; // lsof -ti:3000 | xargs kill
       // Safe reads
       if (/^(ls[\s-]|ls$|cat\s|head[\s-]|tail[\s-]|find\s|grep[\s-]|wc[\s-]|file\s|pwd|uname|which\s|stat\s|du[\s-]|diff\s|echo\s|sort\s|uniq\s|tree|printf\s)/.test(low)) return true;
+      // Git read-only — aman & sering perlu buat konteks
+      if (/^git\s+(status|log|diff|show|branch|remote)\b/.test(low)) return true;
       // mkdir & cd buat nyiapin folder project — aman
       if (/^(mkdir\s|cd\s)/.test(low)) return true;
       // Dev server, scaffolding & package commands — auto-jalankan biar AI bisa langsung kerja
@@ -2493,6 +2499,11 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
                   if (/^(install|installs|instal|doctor|run|dev|builds?|start|next|react|vite)$/i.test(cmdKey)) {
                     throw new Error(`"${cmd}" bukan perintah shell yang valid. Tulis perintah LENGKAP, contoh: npm install / npm run dev / npm run build / npx next dev.`);
                   }
+                  // Perintah berbahaya DILARANG auto-run dari loop (dulu bolong — cuma jalur
+                  // jawaban akhir yang dicek). Suruh model naruh di jawaban akhir buat approval.
+                  if (!isSafe(cmd)) {
+                    throw new Error(`Perintah "${cmd.slice(0, 60)}" kategori BERBAHAYA — tidak boleh auto-run. Tampilkan di JAWABAN AKHIR dalam blok \`\`\`bash supaya user yang menyetujui & menjalankannya.`);
+                  }
                   // Abaikan redirection stderr/dev-null yang biasa dipakai dalam instalasi (2>&1, 2>/dev/null, >/dev/null)
                   const cleanCmd = cmd.replace(/(?:2>&1|2?>\s*\/dev\/null|&>\s*\/dev\/null)/g, '');
                   const hasRedirection = />|>>|tee\b/i.test(cleanCmd);
@@ -2796,7 +2807,7 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
         role: 'assistant',
         content: finalReply,
         parsed: parseMessageContent(finalReply),
-        steps: allAutoRan.length > 0 ? [...localStepsRef.current] : [],
+        steps: allAutoRan.length > 0 ? [...localStepsRef.current].slice(0, 60) : [], // cap — jaga RAM sesi panjang
         stepsDuration: durationSec,
         tasks: agentTasksRef.current.length ? [...agentTasksRef.current] : undefined,
       }]);
