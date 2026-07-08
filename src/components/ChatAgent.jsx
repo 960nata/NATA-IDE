@@ -68,7 +68,7 @@ function InChatTerminal({ command, currentPath, onRunInPanel }) {
   );
 }
 
-// ── QuestionCard — AI nanya dengan pilihan (kayak Claude Code) ──────────────────
+// ── QuestionCard — AI nanya dengan pilihan (kayak Nata Code) ──────────────────
 function QuestionCard({ question, options, onAnswer }) {
   const [showCustom, setShowCustom] = React.useState(false);
   const [custom, setCustom]         = React.useState('');
@@ -145,8 +145,8 @@ function parseTanya(text) {
   return { question, options: options.slice(0, 4), beforeBlock };
 }
 
-// ── Claude-style Agent Step Card ───────────────────────────────────────────────
-// Tampilan persis kayak Claude di VS Code: dot • ToolName  target
+// ── Nata-style Agent Step Card ───────────────────────────────────────────────
+// Tampilan persis kayak Nata Agent di VS Code: dot • ToolName  target
 function getToolInfo(cmd) {
   const t = (cmd || '').trim();
   if (/^write:/.test(t))                 return { type: 'Write',  color: '#8b5cf6' };
@@ -548,7 +548,7 @@ function ThinkingTimer({ start }) {
   return <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '4px' }}>{secs}d</span>;
 }
 
-// 8-spoke red asterisk spinner to match Claude/Gemini "Simmering..."
+// 8-spoke red asterisk spinner to match Nata/Gemini "Simmering..."
 const RedSpinner = () => (
   <svg
     width="14"
@@ -766,7 +766,7 @@ ATURAN: Jangan basa-basi. Langsung verdict. Bahasa Indonesia.`,
   },
 };
 
-// ── Spinning status words — cycling kayak Claude Code ─────────────────────────
+// ── Spinning status words — cycling kayak Nata Code ─────────────────────────
 const SPIN_WORDS = [
   'Spinning',      'Computing',     'Unraveling',    'Puttering',     'Forging',
   'Churning',      'Crafting',      'Deciding',      'Actualizing',   'Simmering',
@@ -776,7 +776,7 @@ const SPIN_WORDS = [
   'Effecting',     'Smoothing',     'Accounting',    'Structuring',   'Processing',
   'Pondering',     'Untangling',    'Surfacing',     'Modeling',      'Resolving',
   'Distilling',    'Inspecting',    'Refining',      'Orchestrating', 'Iterating',
-  'Puzzling',      'Herding',       'Clauding',      'Nataing',       'Performing',
+  'Puzzling',      'Herding',       'Nataing',       'Performing',
   'Conjuring',     'Brewing',       'Musing',        'Sparking',      'Aligning',
   'Percolating',   'Unfolding',     'Illuminating',  'Channeling',    'Compiling',
   'Wiring',        'Rendering',     'Executing',     'Flowing',       'Generating',
@@ -2090,7 +2090,7 @@ export default function ChatAgent({ mode = 'programmer', sessionId = 'default', 
     };
 
     // ── Native tool calling — stream:false, tools array, returns message object ──
-    // Ini yang dipakai Cursor / Claude Code: LLM tidak nulis JSON ke chat,
+    // Ini yang dipakai Cursor / Nata Code: LLM tidak nulis JSON ke chat,
     // dia langsung return tool_calls terstruktur yang dieksekusi oleh runtime.
     const askOllamaWithTools = async (msgs, signal) => {
       const perf = ecoMode
@@ -2632,7 +2632,7 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
             coderReply = message.content || '';
 
             // Markdown mode: auto-eksekusi write/edit blocks yang masih ada di jawaban akhir
-            // lalu bersihkan dari tampilan (UX kayak Claude Code — silent, bukan tampil di chat)
+            // lalu bersihkan dari tampilan (UX kayak Nata Code — silent, bukan tampil di chat)
             if (modelCapability === false) {
               const finalCalls = extractToolCalls(coderReply);
               if (finalCalls.length > 0) {

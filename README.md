@@ -33,7 +33,7 @@ Tiap mode punya workspace, chat, dan tampilan sendiri — **hasil di kiri, chat 
 - **Chat multi-tab per mode** — tiap mode punya riwayat chat sendiri-sendiri
 - **Tim AI opsional** — 1 model main 3 peran: Arsitek → Coder → QA reviewer
 - **Mode Eco** — hemat RAM/baterai buat laptop 8 GB (default ON)
-- **Skills** — tambah kemampuan AI via file markdown, ala Claude Skills
+- **Skills** — tambah kemampuan AI via file markdown, ala Nata Skills
 
 ## 🚀 Cara Jalanin
 

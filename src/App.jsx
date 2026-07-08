@@ -764,7 +764,7 @@ export default function App() {
   if (!mode) return <LandingScreen onEnter={handleEnterMode} />;
 
   const activeMode = MODES.find(m => m.key === mode);
-  const isProgrammer = mode === 'programmer'; // cowork punya shell sendiri ala Claude Cowork (chat = panggung utama)
+  const isProgrammer = mode === 'programmer'; // cowork punya shell sendiri ala Nata Cowork (chat = panggung utama)
   const pickCoworkFolder = async () => {
     try {
       const r = await window.electronAPI.openFolder();
@@ -1399,7 +1399,7 @@ export default function App() {
   }
 
   // ===== Mode lain (gambar/scrape/docs/alarm/terminal) =====
-  // ── Shell khusus Cowork ala Claude Cowork ─────────────────────────────────
+  // ── Shell khusus Cowork ala Nata Cowork ─────────────────────────────────
   // Chat GEDE di tengah sebagai panggung utama, panel "Hasil Kerja" (file
   // workspace) di kanan, tanpa keribetan IDE. AI-nya tetap agent penuh.
   if (mode === 'cowork') {

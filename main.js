@@ -743,10 +743,10 @@ ipcMain.handle('install-skill', async (event, { url, workspaceRoot }) => {
     child.stderr?.on('data', d => { stderr += d.toString(); });
     child.on('close', (code) => {
       if (code !== 0) return resolve({ success: false, error: stderr || `git clone gagal (kode ${code})` });
-      // Cari .md di .nata/skills/, .claude/commands/, skills/, atau root
+      // Cari .md di .nata/skills/, .nata/commands/, skills/, atau root
       const candidates = [
         path.join(tempDir, '.nata', 'skills'),
-        path.join(tempDir, '.claude', 'commands'),
+        path.join(tempDir, '.nata', 'commands'),
         path.join(tempDir, 'skills'),
         tempDir,
       ];

@@ -1,6 +1,6 @@
 # 🤖 Asisten AI Pribadi (lokal, pakai Gemma 4)
 
-Asisten AI ala Claude tapi jalan **offline** di MacBook lewat Ollama + Gemma 4.
+Asisten AI ala Nata tapi jalan **offline** di MacBook lewat Ollama + Gemma 4.
 Otaknya Gemma, kemampuannya nambah lewat **tools** (fungsi Python).
 
 ## Status fitur
