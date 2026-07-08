@@ -1,0 +1,78 @@
+{
+  "name": "nata-ide",
+  "version": "1.0.0",
+  "description": "Nata IDE - AI Coding Agent with Image Processing, Web Scraping, Document Generation & More",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:start": "electron .",
+    "start": "electron .",
+    "pack": "vite build && electron-builder --dir",
+    "dist": "vite build && electron-builder",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.6.0",
+    "axios": "^1.18.1",
+    "cheerio": "^1.2.0",
+    "docx": "^9.7.1",
+    "lucide-react": "^0.395.0",
+    "monaco-editor": "^0.52.2",
+    "node-notifier": "^10.0.1",
+    "pdfkit": "^0.19.1",
+    "pptxgenjs": "^4.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "sharp": "^0.35.2",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.0.1",
+    "electron-builder": "^24.13.3",
+    "vite": "^5.3.1",
+    "vitest": "^1.0.0"
+  },
+  "build": {
+    "appId": "com.nata.ide",
+    "productName": "Nata IDE",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "agent-tools.js",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Nata IDE butuh mikrofon untuk mode ngobrol suara dengan AI lokal."
+      },
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ]
+    }
+  }
+}
