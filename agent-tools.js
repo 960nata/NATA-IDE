@@ -33,6 +33,15 @@ function resolveOut(p, cwd, subdir) {
     rel = path.join(subdir, p);
   }
   const target = path.isAbsolute(rel) ? rel : path.join(cwd || process.cwd(), rel);
+  
+  // Batasi akses berkas (Sandboxing) ke dalam workspace jika cwd ditentukan
+  if (cwd) {
+    const relative = path.relative(cwd, target);
+    if (relative.startsWith('..')) {
+      throw new Error(`Akses ditolak: Target berkas "${p}" di luar workspace.`);
+    }
+  }
+
   const dir = path.dirname(target);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return target;
@@ -41,6 +50,15 @@ function resolveOut(p, cwd, subdir) {
 // Resolve path input (file yg harus sudah ada).
 function resolveIn(p, cwd) {
   const target = path.isAbsolute(p) ? p : path.join(cwd || process.cwd(), p);
+  
+  // Batasi akses berkas (Sandboxing) ke dalam workspace jika cwd ditentukan
+  if (cwd) {
+    const relative = path.relative(cwd, target);
+    if (relative.startsWith('..')) {
+      throw new Error(`Akses ditolak: Target berkas "${p}" di luar workspace.`);
+    }
+  }
+
   if (!fs.existsSync(target)) throw new Error(`File nggak ketemu: ${target}`);
   return target;
 }
@@ -144,11 +162,41 @@ async function scrape({ url, selector }, _ctx) {
     headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh) NataIDE/1.0' }
   });
   const $ = cheerio.load(data);
+
+  // Fallback data SPA Next/Nuxt sebelum script-script dihapus
+  let extraText = '';
+  $('script[type="application/json"]').each((i, el) => {
+    const id = $(el).attr('id');
+    if (id === '__NEXT_DATA__' || id === '__NUXT_DATA__') {
+      try {
+        const json = JSON.parse($(el).html());
+        const extractStrings = (obj) => {
+          let res = [];
+          const walk = (x) => {
+            if (typeof x === 'string') {
+              const val = x.trim();
+              if (val.length > 15 && !val.includes('{') && !val.includes('}')) res.push(val);
+            } else if (typeof x === 'object' && x !== null) {
+              for (const k in x) walk(x[k]);
+            }
+          };
+          walk(obj);
+          return [...new Set(res)].join('\n');
+        };
+        const parsed = extractStrings(json);
+        if (parsed.length > 50) {
+          extraText += '\n\n[Parsed SPA Data]:\n' + parsed.slice(0, 4000);
+        }
+      } catch {}
+    }
+  });
+
   $('script, style, noscript').remove();
   const root = selector ? $(selector) : $('body');
   const text = root.text().replace(/[ \t]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
+  const combined = (text + extraText).trim();
   const max = 8000;
-  const clipped = text.length > max ? text.slice(0, max) + '\n…(dipotong)' : text;
+  const clipped = combined.length > max ? combined.slice(0, max) + '\n…(dipotong)' : combined;
   return `🌐 Hasil scrape ${url}:\n\n${clipped || '(kosong)'}`;
 }
 
@@ -161,6 +209,20 @@ const NATA_HOME_DIR = path.join(process.env.HOME || process.cwd(), '.nata');
 const ALARMS_FILE = path.join(NATA_HOME_DIR, 'alarms.json');
 const TODOS_FILE  = path.join(NATA_HOME_DIR, 'todos.json');
 const _alarmTimers = new Map(); // id -> setTimeout handle
+
+// Checker drift waktu akibat macOS sleep (tiap 15 detik)
+setInterval(() => {
+  try {
+    const alarms = readJsonFile(ALARMS_FILE, []);
+    const now = Date.now();
+    for (const a of alarms) {
+      if (a.atMs <= now && !_alarmTimers.has(a.id + '_fired')) {
+        _alarmTimers.set(a.id + '_fired', true);
+        fireAlarm(a.id).catch(() => {});
+      }
+    }
+  } catch {}
+}, 15000);
 
 function readJsonFile(f, fallback) {
   try { const d = JSON.parse(fs.readFileSync(f, 'utf-8')); return Array.isArray(d) ? d : fallback; }
@@ -408,7 +470,7 @@ async function generate_image({
 
 // --- ANALISA GAMBAR/VIDEO (opencv via venv) & BUKA BROWSER -----------------
 
-const PY_DIRS = [path.join(__dirname, 'python-agent'), '/Users/indragandi/Developer/Nata IDE/python-agent'];
+const PY_DIRS = [path.join(__dirname, 'python-agent'), path.join(process.cwd(), 'python-agent')];
 function venvPy() {
   const d = PY_DIRS.find(d => { try { return fs.existsSync(path.join(d, 'venv', 'bin', 'python')); } catch { return false; } });
   return d ? { py: path.join(d, 'venv', 'bin', 'python'), dir: d } : null;

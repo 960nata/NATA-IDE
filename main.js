@@ -188,6 +188,20 @@ ipcMain.handle('watch-workspace', async (event, { dirPath }) => {
 // 1. Execute terminal command
 ipcMain.handle('execute-command', async (event, { command, cwd, processId }) => {
   return new Promise((resolve) => {
+    // Keamanan: Cek apakah ada perintah destruktif berbahaya
+    const isDangerousCommand = (cmd) => {
+      const c = String(cmd || '').toLowerCase().trim();
+      if (c.includes('rm -rf /') || c.includes('rm -rf ~') || c.includes('rm -rf $home')) return true;
+      if (c.includes(':(){:|:&};:')) return true; // fork bomb
+      if (c.includes('dd if=') && c.includes('of=/dev/')) return true; // disk overwrite
+      if (c.includes('mkfs.')) return true; // format disk
+      return false;
+    };
+
+    if (isDangerousCommand(command)) {
+      return resolve({ success: false, error: '⚠️ Perintah diblokir demi keamanan sistem Anda (terdeteksi perintah destruktif).' });
+    }
+
     console.log(`Executing: ${command} in ${cwd || process.cwd()}`);
     
     // Spawn shell to execute command
@@ -586,7 +600,7 @@ ipcMain.handle('tts-stop', async () => {
 // Path dicari di 2 tempat: dalam app (dev) & folder source (app terpaket, python-agent gak ikut asar).
 const PY_AGENT_CANDIDATES = [
   path.join(__dirname, 'python-agent'),
-  '/Users/indragandi/Developer/Nata IDE/python-agent',
+  path.join(process.cwd(), 'python-agent'),
 ];
 ipcMain.handle('stt-transcribe', async (event, { b64, ext = 'webm' }) => {
   try {
@@ -914,6 +928,23 @@ ipcMain.handle('web-search', async (event, { query }) => {
       const title = htmlToText(m[2]);
       if (title && /^https?:/.test(link)) results.push({ title, url: link });
     }
+
+    if (results.length === 0) {
+      // Fallback: ambil semua tautan eksternal yang bukan ke duckduckgo
+      const fallbackRe = /<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+      const seen = new Set();
+      while ((m = fallbackRe.exec(body)) && results.length < 6) {
+        let link = m[1];
+        const dd = link.match(/uddg=([^&]+)/);
+        if (dd) { try { link = decodeURIComponent(dd[1]); } catch {} }
+        const title = htmlToText(m[2]);
+        if (title && /^https?:/.test(link) && !link.includes('duckduckgo.com') && !seen.has(link)) {
+          results.push({ title, url: link });
+          seen.add(link);
+        }
+      }
+    }
+
     return { success: true, query, results };
   } catch (e) {
     const offline = /fetch failed|ENOTFOUND|EAI_AGAIN|abort|network/i.test(e.message);
