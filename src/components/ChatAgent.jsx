@@ -2211,6 +2211,13 @@ export default function ChatAgent({ mode = 'programmer', sessionId = 'default', 
         if (um?.success && um.content?.trim()) rulesBlock += `\n\n[PROFIL & KEBIASAAN PENGGUNA — gunakan untuk personalisasi jawaban, jangan disebut-sebut kecuali relevan]:\n${um.content.slice(-1200)}`;
       }
     } catch {}
+    // Pelajaran global dari Learning Hub
+    try {
+      const lh = await window.electronAPI.runTool('learning_hub_get_recent_lessons', {});
+      if (lh?.success && lh.message && !lh.message.includes('Belum ada pelajaran')) {
+        rulesBlock += `\n\n[PELAJARAN TERBARU YANG TELAH KAMU PELAJARI DARI LEARNING HUB - terapkan trik & solusi bug ini saat menulis kode]:\n${lh.message.slice(-1200)}`;
+      }
+    } catch {}
     // (Fokus per mode sekarang ada di MODE_PROMPTS — tiap mode punya persona sendiri)
     const skillBlock = skill ? `\n\n[SKILL AKTIF: ${skill.name}]\n${skill.prompt}\n` : '';
     const planBlock = planMode
@@ -2270,6 +2277,13 @@ ATURAN:
 Working directory: ${currentPath}${rulesBlock}
 Cara kerja: jawab pertanyaan user langsung. Kalau butuh data sistem, jalankan perintah lewat blok \`\`\`bash\n<perintah>\n\`\`\` — output-nya balik ke kamu DAN tampil di konsol panel kiri user.
 Setelah dapat output, JELASKAN hasilnya singkat dalam bahasa user. JANGAN scaffold project / nulis file kode kecuali diminta eksplisit.`,
+      learning: `Kamu adalah Nata Pembelajar (AI Mentor) — asisten pribadi lokal untuk berdiskusi tentang pemrograman dan materi yang dipelajari.
+Working directory: ${currentPath}${rulesBlock}
+Kamu mendampingi user melihat apa saja yang sudah kamu pelajari dari situs-situs developer di panel kiri.
+Tugas utama kamu adalah:
+- Membantu menjelaskan konsep coding, solusi bug, dan trik pemrograman yang sudah dipelajari.
+- Menjawab pertanyaan dan memberikan contoh implementasi lain dari trik tersebut jika diminta.
+- Menjawab dengan gaya santai, ramah, dan mendalam sebagai seorang mentor pemograman berpengalaman. Jawab dalam bahasa user (default: Bahasa Indonesia).`,
     };
 
     const programmerPrompt = `Kamu adalah Nata Agent — asisten coding AI lokal di Nata IDE (model: ${ollamaModel}, Apple Silicon Mac).

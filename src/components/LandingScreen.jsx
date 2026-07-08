@@ -77,6 +77,19 @@ export const MODES = [
         <line x1="12" y1="19" x2="20" y2="19" />
       </svg>
     )
+  },
+  {
+    key: 'learning',
+    tag: '07 · brain',
+    title: 'Pusat Belajar AI',
+    desc: 'AI belajar topik pemrograman, bug harian, & tips trik harian secara otomatis via database lokal.',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4d9fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3.014 3.014 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2z" />
+        <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3.014 3.014 0 0 0 0-3.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2z" />
+        <path d="M12 12h5M12 7h3M12 17h4M7 12h5M9 7h3M8 17h4" />
+      </svg>
+    )
   }
 ];
 

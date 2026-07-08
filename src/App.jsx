@@ -482,6 +482,20 @@ export default function App() {
       setSysUser(info.username || '');
       setSysHost(info.hostname || '');
     }).catch(() => {});
+
+    // Pemicu pembelajaran harian otonom pas start up
+    const today = new Date().toISOString().split('T')[0];
+    window.electronAPI.runTool('learning_hub_get', {}).then(res => {
+      if (res.success && res.message) {
+        const dbData = JSON.parse(res.message);
+        if (dbData.stats.lastFetchedDate !== today) {
+          // Tarik materi baru di background
+          window.electronAPI.runTool('learning_hub_fetch', {}).then(() => {
+            console.log('Daily learning hub fetch completed.');
+          }).catch(err => console.error(err));
+        }
+      }
+    }).catch(() => {});
   }, []);
 
   // ---- Tab editor helpers ------------------------------------------------

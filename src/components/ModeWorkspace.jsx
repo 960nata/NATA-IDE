@@ -550,6 +550,467 @@ function TerminalPanel({ currentPath }) {
   );
 }
 
+// ═════════════════════ 07 · PUSAT BELAJAR AI ═════════════════════════════════
+function LearningPanel({ currentPath }) {
+  const [db, setDb] = useState({
+    stats: { totalLearned: 0, streak: 0, lastLearnedDate: null, lastFetchedDate: null },
+    queue: [],
+    learned: []
+  });
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [loading, setLoading] = useState(false);
+  const [statusText, setStatusText] = useState('');
+
+  // Form tambah manual
+  const [customTitle, setCustomTitle] = useState('');
+  const [customContent, setCustomContent] = useState('');
+  const [customUrl, setCustomUrl] = useState('');
+
+  // Riwayat detail toggle
+  const [expandedLearnId, setExpandedLearnId] = useState(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const res = await window.electronAPI.runTool('learning_hub_get', {});
+      if (res.success && res.message) {
+        setDb(JSON.parse(res.message));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    // Daily trigger check
+    const today = new Date().toISOString().split('T')[0];
+    const triggerDaily = async () => {
+      try {
+        const res = await window.electronAPI.runTool('learning_hub_get', {});
+        if (res.success && res.message) {
+          const dbData = JSON.parse(res.message);
+          if (dbData.stats.lastFetchedDate !== today) {
+            // Tarik otomatis
+            window.electronAPI.runTool('learning_hub_fetch', {});
+          }
+        }
+      } catch (err) {}
+    };
+    triggerDaily();
+  }, []);
+
+  const handleLearn = async (id) => {
+    setLoading(true);
+    setStatusText("AI sedang memproses pembelajaran menggunakan Ollama (estimasi 10-60 detik)...");
+    try {
+      const activeModel = localStorage.getItem('nata_model') || 'qwen3:4b-instruct';
+      const activeHost = localStorage.getItem('nata_ollama_host') || 'http://localhost:11434';
+      
+      const res = await window.electronAPI.runTool('learning_hub_learn_item', {
+        id,
+        modelHost: activeHost,
+        modelName: activeModel
+      });
+
+      if (res.success) {
+        const payload = JSON.parse(res.message);
+        if (payload.success) {
+          toast(`🎉 AI Sukses Belajar: "${payload.data.summary}"`, 'success');
+          loadData();
+          askAI(`Aku baru saja mempelajari topik baru: "${payload.data.title}". Rangkuman pelajaran: ${payload.data.summary}. Coba jelaskan konsepnya kepadaku.`);
+        } else {
+          toast(`Gagal belajar: ${payload.message}`, 'error');
+        }
+      } else {
+        toast(`Error belajar: ${res.message}`, 'error');
+      }
+    } catch (err) {
+      toast(`Gagal: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+      setStatusText("");
+    }
+  };
+
+  const handleFetch = async () => {
+    setLoading(true);
+    setStatusText("Menghubungi Dev.to API...");
+    try {
+      const res = await window.electronAPI.runTool('learning_hub_fetch', {});
+      if (res.success) {
+        toast(res.message, 'success');
+        loadData();
+      } else {
+        toast(res.message, 'error');
+      }
+    } catch (err) {
+      toast(`Gagal menarik materi: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+      setStatusText("");
+    }
+  };
+
+  const handleAddCustom = async (e) => {
+    e.preventDefault();
+    if (!customTitle || !customContent) {
+      toast("Judul dan isi materi wajib diisi!", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await window.electronAPI.runTool('learning_hub_add_item', {
+        title: customTitle,
+        content: customContent,
+        url: customUrl
+      });
+      if (res.success) {
+        toast(res.message, 'success');
+        setCustomTitle("");
+        setCustomContent("");
+        setCustomUrl("");
+        setActiveTab('queue');
+        loadData();
+      } else {
+        toast(res.message, 'error');
+      }
+    } catch (err) {
+      toast(`Gagal: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pendingItems = db.queue.filter(q => q.status === 'pending');
+  const learnedItems = db.learned;
+
+  const tabStyle = (tab) => ({
+    padding: '8px 14px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    background: 'transparent',
+    border: 'none',
+    color: activeTab === tab ? '#4d9fff' : '#6b7280',
+    borderBottom: activeTab === tab ? '2px solid #4d9fff' : '2px solid transparent',
+    transition: 'all 0.2s',
+  });
+
+  return (
+    <div style={S.panel}>
+      <style>{`
+        @keyframes pulse-glowing {
+          0% { filter: drop-shadow(0 0 2px rgba(77, 159, 255, 0.4)); opacity: 0.7; }
+          50% { filter: drop-shadow(0 0 10px rgba(77, 159, 255, 0.9)); opacity: 1; }
+          100% { filter: drop-shadow(0 0 2px rgba(77, 159, 255, 0.4)); opacity: 0.7; }
+        }
+        @keyframes spin-loader {
+          to { transform: rotate(360deg); }
+        }
+        .glowing-brain {
+          animation: pulse-glowing 2s infinite ease-in-out;
+        }
+        .spinning-loader {
+          animation: spin-loader 1s infinite linear;
+        }
+      `}</style>
+
+      <PanelHeader 
+        icon={
+          <svg className="glowing-brain" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4d9fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3.014 3.014 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2z" />
+            <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3.014 3.014 0 0 0 0-3.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2z" />
+          </svg>
+        } 
+        title="Pusat Belajar AI" 
+        currentPath={currentPath} 
+        onRefresh={loadData}
+        extra={
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <span style={{ ...S.muted, ...S.mono, fontSize: '11px', display: 'flex', alignItems: 'center' }}>
+              {learnedItems.length} pelajaran | {pendingItems.length} antrean
+            </span>
+          </div>
+        }
+      />
+
+      {/* Tab bar */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', background: '#0d0f15', padding: '0 8px', flexShrink: 0 }}>
+        <button onClick={() => setActiveTab('dashboard')} style={tabStyle('dashboard')}>Dashboard</button>
+        <button onClick={() => setActiveTab('queue')} style={tabStyle('queue')}>
+          Antrean ({pendingItems.length})
+        </button>
+        <button onClick={() => setActiveTab('history')} style={tabStyle('history')}>
+          Riwayat ({learnedItems.length})
+        </button>
+        <button onClick={() => setActiveTab('add')} style={tabStyle('add')}>+ Materi</button>
+      </div>
+
+      <div style={S.body}>
+        {/* Status text if loading */}
+        {loading && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(77, 159, 255, 0.08)', border: '1px solid rgba(77, 159, 255, 0.2)', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', color: '#4d9fff', fontSize: '12px' }}>
+            <RefreshCw size={14} className="spinning-loader" />
+            <span>{statusText || 'Sedang memproses...'}</span>
+          </div>
+        )}
+
+        {/* TAB 1: DASHBOARD */}
+        {activeTab === 'dashboard' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* Stats Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+              <div style={{ ...S.card, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 10px', textAlign: 'center' }}>
+                <span style={{ fontSize: '28px', marginBottom: '4px' }}>🔥</span>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: '#ff9c3a' }}>{db.stats.streak} Hari</span>
+                <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Streak Belajar Harian</span>
+              </div>
+              <div style={{ ...S.card, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 10px', textAlign: 'center' }}>
+                <span style={{ fontSize: '28px', marginBottom: '4px' }}>🧠</span>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: '#4d9fff' }}>{db.stats.totalLearned}</span>
+                <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Total Pelajaran Diserap</span>
+              </div>
+            </div>
+
+            {/* Quick Summary Card */}
+            <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: '14px', background: 'linear-gradient(135deg, #11141c 0%, #0f1624 100%)' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(77,159,255,0.1)', borderRadius: '50%', width: '42px', height: '42px', flexShrink: 0 }}>
+                <Sparkles size={20} style={{ color: '#4d9fff' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#e3e3e6' }}>Integrasi Kognitif Aktif</div>
+                <div style={{ fontSize: '11.5px', color: '#8892b0', lineHeight: 1.4, marginTop: '2px' }}>
+                  Pelajaran trik coding &amp; solusi bug harian yang diserap AI otomatis diinjeksi ke mode coding, membuat AI Anda semakin pintar secara lokal!
+                </div>
+              </div>
+            </div>
+
+            {/* Dashboard Actions */}
+            <div style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#e3e3e6' }}>Kontrol Pembelajaran</div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button style={{ ...S.btn, flex: 1, justifyContent: 'center' }} onClick={handleFetch} disabled={loading}>
+                  <RefreshCw size={13} /> Tarik Materi
+                </button>
+                <button 
+                  style={{ ...S.btn, flex: 1, justifyContent: 'center', background: 'rgba(46, 224, 138, 0.1)', border: '1px solid rgba(46, 224, 138, 0.3)', color: '#2fe08a' }} 
+                  onClick={() => handleLearn()} 
+                  disabled={loading || pendingItems.length === 0}
+                >
+                  <Play size={13} /> Mulai Belajar
+                </button>
+              </div>
+              {pendingItems.length === 0 ? (
+                <div style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center' }}>
+                  Antrean belajar kosong. Klik "Tarik Materi" untuk mengambil artikel pemrograman dari Dev.to.
+                </div>
+              ) : (
+                <div style={{ fontSize: '11px', color: '#8892b0', textAlign: 'center' }}>
+                  Ada <strong>{pendingItems.length} materi</strong> menunggu di antrean belajar Anda.
+                </div>
+              )}
+            </div>
+
+            {/* Glowing Brain SVG graphic for aesthetics */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
+              <svg className="glowing-brain" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="rgba(77, 159, 255, 0.3)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3.014 3.014 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2z" />
+                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3.014 3.014 0 0 0 0-3.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2z" />
+                <circle cx="12" cy="4.5" r="0.5" fill="#4d9fff" />
+                <circle cx="7" cy="9.5" r="0.5" fill="#4d9fff" />
+                <circle cx="17" cy="9.5" r="0.5" fill="#4d9fff" />
+                <circle cx="6" cy="14.5" r="0.5" fill="#4d9fff" />
+                <circle cx="18" cy="14.5" r="0.5" fill="#4d9fff" />
+                <circle cx="9.5" cy="19" r="0.5" fill="#4d9fff" />
+                <circle cx="14.5" cy="19" r="0.5" fill="#4d9fff" />
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: QUEUE */}
+        {activeTab === 'queue' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 600 }}>Daftar Antrean ({pendingItems.length})</span>
+              <button style={S.btnGhost} onClick={handleFetch} disabled={loading}><RefreshCw size={11} /> Tarik Baru</button>
+            </div>
+
+            {pendingItems.length === 0 ? (
+              <EmptyState 
+                emoji="📭" 
+                title="Antrean Belajar Kosong" 
+                note="Tidak ada materi pemrograman di antrean saat ini. Klik Tarik Materi untuk mengunduh artikel baru secara online." 
+                chips={[
+                  { label: 'Tarik Artikel Dev.to', prompt: 'Tarik materi belajar pemrograman dari Dev.to' }
+                ]}
+              />
+            ) : (
+              pendingItems.map(item => (
+                <div key={item.id} style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#e3e3e6', lineHeight: 1.3 }}>{item.title}</span>
+                    <span style={{ background: 'rgba(77,159,255,0.1)', color: '#4d9fff', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                      {item.source}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '11.5px', color: '#8892b0', margin: 0, lineHeight: 1.4 }}>{item.description}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {(item.tags || []).map(t => (
+                      <span key={t} style={{ fontSize: '9.5px', color: '#6b7280', background: 'rgba(255,255,255,0.03)', padding: '1px 5px', borderRadius: '3px' }}>
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
+                    {item.url && (
+                      <button style={S.btnGhost} onClick={() => window.electronAPI.openExternal(item.url)}>
+                        Situs ↗
+                      </button>
+                    )}
+                    <button 
+                      style={{ ...S.btn, background: 'rgba(46, 224, 138, 0.1)', border: '1px solid rgba(46, 224, 138, 0.3)', color: '#2fe08a', padding: '4px 10px', fontSize: '11px' }}
+                      onClick={() => handleLearn(item.id)}
+                      disabled={loading}
+                    >
+                      Pelajari
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: HISTORY */}
+        {activeTab === 'history' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 600, marginBottom: '6px' }}>Riwayat Penyerapan ({learnedItems.length})</span>
+
+            {learnedItems.length === 0 ? (
+              <EmptyState 
+                emoji="🎓" 
+                title="Belum Ada Pelajaran" 
+                note="AI belum mempelajari apapun. Buka tab Antrean dan klik Pelajari untuk melatih AI lokal Anda." 
+              />
+            ) : (
+              [...learnedItems].reverse().map(learn => {
+                const isExpanded = expandedLearnId === learn.id;
+                return (
+                  <div key={learn.id} style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer' }} onClick={() => setExpandedLearnId(isExpanded ? null : learn.id)}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#2fe08a', lineHeight: 1.3 }}>{learn.title}</span>
+                      <span style={{ background: 'rgba(46, 224, 138, 0.1)', color: '#2fe08a', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                        {learn.category}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#6b7280' }}>
+                      <span>Dari {learn.source}</span>
+                      <span>•</span>
+                      <span>{new Date(learn.learnedAt).toLocaleDateString('id-ID')}</span>
+                    </div>
+
+                    <div style={{ background: '#0a0d14', borderLeft: '3px solid #2fe08a', padding: '6px 10px', borderRadius: '4px', margin: '4px 0' }}>
+                      <div style={{ fontSize: '12px', color: '#e3e3e6', fontStyle: 'italic' }}>
+                        " {learn.summary} "
+                      </div>
+                    </div>
+
+                    {isExpanded ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: '12px', lineHeight: 1.5 }}>
+                          <strong style={{ color: '#cbd5e1', display: 'block', marginBottom: '3px' }}>Pelajaran Utama:</strong>
+                          <span style={{ color: '#8892b0' }}>{learn.lesson}</span>
+                        </div>
+                        {learn.codeTrick && (
+                          <div>
+                            <strong style={{ color: '#cbd5e1', display: 'block', marginBottom: '4px', fontSize: '12px' }}>Trik Kode Pemrograman:</strong>
+                            <pre style={{ margin: 0, padding: '10px', background: '#05070a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '11px', color: '#a2b1c6', overflowX: 'auto', ...S.mono, lineHeight: 1.5 }}>
+                              {learn.codeTrick}
+                            </pre>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                          <button style={S.btnGhost} onClick={() => askAI(`Jelaskan lebih lanjut trik kode di artikel "${learn.title}".`)}>
+                            Diskusikan pelajaran ini 💬
+                          </button>
+                          {learn.url && (
+                            <button style={{ ...S.btnGhost, padding: '3px 8px', fontSize: '11px' }} onClick={() => window.electronAPI.openExternal(learn.url)}>
+                              Buka artikel asli ↗
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '10px', color: '#6b7280', textAlign: 'right', marginTop: '2px' }}>Klik untuk melihat detail trik kode &amp; penjelasan</div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: ADD CUSTOM */}
+        {activeTab === 'add' && (
+          <form onSubmit={handleAddCustom} style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#e3e3e6' }}>Tambah Materi Belajar Sendiri</div>
+            <div style={{ fontSize: '11px', color: '#8892b0', lineHeight: 1.4 }}>
+              Punya snippet code, bug menarik, atau artikel dokumentasi yang ingin Anda ajarkan pada AI? Masukkan di bawah untuk dimasukkan ke antrean belajarnya.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '11.5px', color: '#cbd5e1', fontWeight: 600 }}>Judul Topik / Artikel</label>
+              <input 
+                type="text" 
+                value={customTitle} 
+                onChange={e => setCustomTitle(e.target.value)}
+                placeholder="Contoh: Mengatasi Memory Leak di useEffect React" 
+                style={S.input} 
+                required 
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '11.5px', color: '#cbd5e1', fontWeight: 600 }}>Konten / Snippet Code / Penjelasan</label>
+              <textarea 
+                value={customContent} 
+                onChange={e => setCustomContent(e.target.value)}
+                placeholder="Tempel penjelasan bug, kode lama yang bermasalah, atau trik pemecahannya di sini..." 
+                style={{ ...S.input, minHeight: '120px', resize: 'vertical', fontFamily: '"JetBrains Mono", monospace' }} 
+                required 
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '11.5px', color: '#cbd5e1', fontWeight: 600 }}>Tautan Sumber (Opsional)</label>
+              <input 
+                type="url" 
+                value={customUrl} 
+                onChange={e => setCustomUrl(e.target.value)}
+                placeholder="https://github.com/... atau https://stackoverflow.com/..." 
+                style={S.input} 
+              />
+            </div>
+
+            <button type="submit" style={{ ...S.btn, justifyContent: 'center', marginTop: '6px' }} disabled={loading}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Tambah ke Antrean Belajar
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── router per mode ──────────────────────────────────────────────────────────
 export default function ModeWorkspace({ mode, currentPath }) {
   switch (mode) {

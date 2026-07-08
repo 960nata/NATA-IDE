@@ -7,6 +7,7 @@
 
 import path from 'path';
 import fs from 'fs';
+import { getHubData, fetchMaterials, learnItem, addCustomItem, getRecentLessons } from './learning-hub.js';
 
 // __dirname equivalent untuk ESM — pakai URL parsing biar aman di Electron 20/31.
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
@@ -641,7 +642,38 @@ async function search_files({ query }, ctx) {
     : `🔍 Kata "${query}" tidak ditemukan di file mana pun.`;
 }
 
+// --- LEARNING HUB TOOLS ---
+async function learning_hub_get(_args, _ctx) {
+  const data = await getHubData();
+  return JSON.stringify(data);
+}
+
+async function learning_hub_fetch(_args, _ctx) {
+  const res = await fetchMaterials();
+  return res;
+}
+
+async function learning_hub_learn_item({ id, modelHost, modelName }, _ctx) {
+  const res = await learnItem({ id, modelHost, modelName });
+  return JSON.stringify(res);
+}
+
+async function learning_hub_add_item({ title, content, url }, _ctx) {
+  const res = await addCustomItem({ title, content, url });
+  return res;
+}
+
+async function learning_hub_get_recent_lessons(_args, _ctx) {
+  const lessons = await getRecentLessons();
+  return lessons || 'Belum ada pelajaran yang tercatat.';
+}
+
 const TOOLS = {
+  learning_hub_get,
+  learning_hub_fetch,
+  learning_hub_learn_item,
+  learning_hub_add_item,
+  learning_hub_get_recent_lessons,
   create_word, create_pdf, create_pptx,
   image_resize, image_convert, image_ocr,
   generate_image,
