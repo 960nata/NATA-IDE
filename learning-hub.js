@@ -282,9 +282,9 @@ Jawab HANYA dengan format JSON yang valid (tanpa teks penjelasan lain di luar JS
       stream: false,
       options: {
         temperature: 0.1,
-        num_ctx: 2048, // Dikurangi untuk menghemat RAM pada Mac 8GB agar tidak swap ke SSD
-        num_predict: 1024, // Membatasi panjang output agar generasi teks cepat selesai
-        num_thread: 4 // Membatasi thread jika Ollama terpaksa memakai CPU
+        num_ctx: 1536, // Dioptimalkan ke 1536 agar model 4B + KV cache muat penuh di GPU M1 tanpa tumpah ke CPU/SSD swap
+        num_predict: 512, // Membatasi output JSON pelajaran agar proses regenerasi sangat singkat
+        num_thread: 4 // Batasi thread CPU jika terjadi fallback memori
       }
     }, { timeout: 120000 });
 
