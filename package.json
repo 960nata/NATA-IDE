@@ -48,6 +48,7 @@
       "main.js",
       "preload.js",
       "agent-tools.js",
+      "learning-hub.js",
       "package.json"
     ],
     "asarUnpack": [
