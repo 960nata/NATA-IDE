@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Terminal, Trash2, XCircle } from 'lucide-react';
 
-export default function TerminalPanel({ logs, isRunning, onKill, onClear }) {
+export default function TerminalPanel({ logs, isRunning, onKill, onClear, onSendStdin }) {
   const terminalEndRef = useRef(null);
+  const [stdinInput, setStdinInput] = useState('');
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -10,6 +11,13 @@ export default function TerminalPanel({ logs, isRunning, onKill, onClear }) {
       terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!stdinInput.trim()) return;
+    onSendStdin?.(stdinInput);
+    setStdinInput('');
+  };
 
   return (
     <div style={{
@@ -58,7 +66,7 @@ export default function TerminalPanel({ logs, isRunning, onKill, onClear }) {
         <div style={{ display: 'flex', gap: '8px' }}>
           {isRunning && (
             <button
-              onClick={onKill}
+               onClick={onKill}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -129,6 +137,27 @@ export default function TerminalPanel({ logs, isRunning, onKill, onClear }) {
                 {log.text}
               </div>
             ))}
+            {isRunning && (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', alignItems: 'center', marginTop: '6px' }}>
+                <span style={{ color: 'var(--accent-cyan)', marginRight: '6px', userSelect: 'none' }}>→</span>
+                <input
+                  type="text"
+                  value={stdinInput}
+                  onChange={(e) => setStdinInput(e.target.value)}
+                  placeholder="Ketik ke stdin (Enter untuk kirim)..."
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#f8f8f2',
+                    fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+                    fontSize: '13px',
+                    padding: 0
+                  }}
+                />
+              </form>
+            )}
             <div ref={terminalEndRef} />
           </div>
         )}

@@ -69,7 +69,7 @@ function SelfTerminal({ currentPath, sysUser, sysHost }) {
 }
 
 // ── Terminal ────────────────────────────────────────────────────────────────
-function TerminalTab({ logs, isRunning, onRunCommand, currentPath, sysUser, sysHost, activeProcessId }) {
+function TerminalTab({ logs, isRunning, onRunCommand, currentPath, sysUser, sysHost, activeProcessId, onSendStdin }) {
   const endRef   = useRef(null);
   const inputRef = useRef(null);
   const [cmd, setCmd]     = useState('');
@@ -98,7 +98,11 @@ function TerminalTab({ logs, isRunning, onRunCommand, currentPath, sysUser, sysH
     setCmd('');
     if (isRunning && activeProcessId) {
       // Kirim sebagai stdin ke proses yang lagi jalan
-      window.electronAPI.sendStdin(activeProcessId, t + '\n').catch(() => {});
+      if (onSendStdin) {
+        onSendStdin(t);
+      } else {
+        window.electronAPI.sendStdin(activeProcessId, t + '\n').catch(() => {});
+      }
     } else if (t.trim()) {
       setHist(p => [t.trim(), ...p.slice(0, 49)]);
       setHIdx(-1);
@@ -117,6 +121,9 @@ function TerminalTab({ logs, isRunning, onRunCommand, currentPath, sysUser, sysH
       setHIdx(n); setCmd(n < 0 ? '' : hist[n]);
     } else if (e.key === 'c' && e.ctrlKey && isRunning && activeProcessId) {
       // Ctrl+C → kirim SIGINT via stdin
+      if (onSendStdin) {
+        onSendStdin('^C');
+      }
       window.electronAPI.sendStdin(activeProcessId, '\x03').catch(() => {});
     }
   };
@@ -366,7 +373,7 @@ function PortsPanel() {
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
-export default function BottomPanel({ logs, isRunning, onKill, onClear, onRunCommand, currentPath, sysUser, sysHost, diagnostics = [], isCheckingDiagnostics = false, onRunDiagnostics, onOpenProblem, defaultTab = 'terminal', activeProcessId = null, activeTab, setActiveTab, height }) {
+export default function BottomPanel({ logs, isRunning, onKill, onClear, onRunCommand, onSendStdin, currentPath, sysUser, sysHost, diagnostics = [], isCheckingDiagnostics = false, onRunDiagnostics, onOpenProblem, defaultTab = 'terminal', activeProcessId = null, activeTab, setActiveTab, height }) {
   const [localActive, setLocalActive] = useState(defaultTab);
   const active = activeTab !== undefined ? activeTab : localActive;
   const setActive = setActiveTab !== undefined ? setActiveTab : setLocalActive;
@@ -471,7 +478,7 @@ export default function BottomPanel({ logs, isRunning, onKill, onClear, onRunCom
 
       {/* Panel content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {active === 'terminal'  && activeTerm === 'main' && <TerminalTab logs={logs} isRunning={isRunning} onRunCommand={onRunCommand} currentPath={currentPath} sysUser={sysUser} sysHost={sysHost} activeProcessId={activeProcessId} />}
+        {active === 'terminal'  && activeTerm === 'main' && <TerminalTab logs={logs} isRunning={isRunning} onRunCommand={onRunCommand} currentPath={currentPath} sysUser={sysUser} sysHost={sysHost} activeProcessId={activeProcessId} onSendStdin={onSendStdin} />}
         {active === 'terminal'  && activeTerm !== 'main' && terms.filter(t => t.id !== 'main').map(t => (
           <div key={t.id} style={{ flex: 1, display: activeTerm === t.id ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
             <SelfTerminal currentPath={currentPath} sysUser={sysUser} sysHost={sysHost} />

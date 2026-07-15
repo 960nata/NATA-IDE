@@ -9,6 +9,7 @@ import ImagePreview from './components/ImagePreview';
 import ActivityBar from './components/ActivityBar';
 import ProgrammerWelcome, { pushRecentWorkspace } from './components/ProgrammerWelcome';
 import ModeWorkspace from './components/ModeWorkspace';
+import CoworkWorkspace from './components/CoworkWorkspace';
 import { SearchPanel, SourceControlPanel, PlaceholderPanel, SkillsPanel } from './components/SidebarPanels';
 import { ArrowLeft, Cpu, Plus, X, GitBranch, Sparkles, Bell } from 'lucide-react';
 import { toast } from './toast';
@@ -650,6 +651,13 @@ export default function App() {
     if (activeProcessId) await window.electronAPI.killCommand(activeProcessId).catch(() => {});
   };
 
+  const handleSendStdin = async (text) => {
+    if (isRunningCommand && activeProcessId) {
+      setTerminalLogs(prev => [...prev, { type: 'out', text: text + '\n' }]);
+      await window.electronAPI.sendStdin(activeProcessId, text + '\n').catch(() => {});
+    }
+  };
+
   // ---- Write file --------------------------------------------------------
 
   const handleWriteFile = async (filePath, content) => {
@@ -1097,6 +1105,7 @@ export default function App() {
         onKill={handleKillCommand}
         onClear={() => setTerminalLogs([])}
         onRunCommand={handleRunCommand}
+        onSendStdin={handleSendStdin}
         currentPath={currentPath}
         sysUser={sysUser}
         sysHost={sysHost}
@@ -1422,7 +1431,7 @@ export default function App() {
               </button>
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
-              <FileExplorer rootPath={coworkDir} onOpenFile={(p) => window.electronAPI.revealPath(p)} currentOpenFile={null} />
+              <CoworkWorkspace rootPath={coworkDir} />
             </div>
           </div>
         </div>

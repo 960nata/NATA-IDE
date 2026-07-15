@@ -67,6 +67,7 @@ export default function CodeEditor({ filePath, onFileSaved, reloadSignal, wordWr
 
   const blameDecorationsRef = useRef([]);
   const blameTimeoutRef = useRef(null);
+  const blameCacheRef = useRef({});
 
   // Diagnostics → squiggly markers di editor (garis merah error / kuning warning)
   useEffect(() => {
@@ -114,7 +115,14 @@ export default function CodeEditor({ filePath, onFileSaved, reloadSignal, wordWr
   const showBlameDecoration = async (lineNumber) => {
     if (!editorRef.current || !monacoRef.current || !filePath || !workspaceRoot) return;
     try {
-      const res = await window.electronAPI.gitBlame(workspaceRoot, filePath, lineNumber);
+      let res = blameCacheRef.current[lineNumber];
+      if (!res) {
+        res = await window.electronAPI.gitBlame(workspaceRoot, filePath, lineNumber);
+        if (res && res.success) {
+          blameCacheRef.current[lineNumber] = res;
+        }
+      }
+
       if (res && res.success) {
         const { author, summary, time } = res;
         const blameMsg = `    ${author} • ${time} • "${summary}"`;
@@ -165,8 +173,9 @@ export default function CodeEditor({ filePath, onFileSaved, reloadSignal, wordWr
     };
   }, [pos.line, filePath, workspaceRoot]);
 
-  // Clean up decorations on file change
+  // Clean up decorations & reset cache on file change or reload
   useEffect(() => {
+    blameCacheRef.current = {};
     return () => {
       if (editorRef.current && blameDecorationsRef.current.length > 0) {
         try {
@@ -174,7 +183,7 @@ export default function CodeEditor({ filePath, onFileSaved, reloadSignal, wordWr
         } catch (e) {}
       }
     };
-  }, [filePath]);
+  }, [filePath, reloadSignal]);
 
   // Load file content
   useEffect(() => {

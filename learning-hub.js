@@ -71,7 +71,29 @@ export async function getHubData() {
   return db;
 }
 
-// 2. Tarik materi dari Dev.to API
+// Helper: Membersihkan tag HTML dari Stack Overflow API dan mengubah ke Markdown sederhana
+function cleanHtml(html) {
+  if (!html) return '';
+  return html
+    .replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/gi, '\n```\n$1\n```\n')
+    .replace(/<code>(.*?)<\/code>/gi, '`$1`')
+    .replace(/<p>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<a href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)')
+    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+    .replace(/<em>(.*?)<\/em>/gi, '*$1*')
+    .replace(/<[^>]+>/g, '') // Hapus sisa tag HTML
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n\s*\n+/g, '\n\n') // Satukan baris kosong berlebih
+    .trim();
+}
+
+// 2. Tarik materi dari Dev.to dan Stack Overflow API
 export async function fetchMaterials() {
   const db = readDb();
   const today = getTodayString();
@@ -89,24 +111,74 @@ export async function fetchMaterials() {
       ...db.learned.map(item => item.queueId || item.id)
     ]);
 
+    // 1. Tarik dari Dev.to
     for (const url of urls) {
-      const response = await axios.get(url, {
+      try {
+        const response = await axios.get(url, {
+          timeout: 15000,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh) NataIDE/1.0' }
+        });
+
+        if (Array.isArray(response.data)) {
+          for (const article of response.data) {
+            const id = `devto_${article.id}`;
+            if (!existingIds.has(id)) {
+              db.queue.push({
+                id,
+                devtoId: article.id,
+                title: article.title,
+                url: article.url,
+                source: 'Dev.to',
+                description: article.description || article.body_markdown?.slice(0, 200) || 'Tidak ada deskripsi.',
+                tags: article.tag_list || [],
+                fetchedAt: Date.now(),
+                status: 'pending'
+              });
+              existingIds.add(id);
+              newCount++;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Gagal menarik materi dari Dev.to:', err.message);
+      }
+    }
+
+    // 2. Tarik dari Stack Overflow
+    try {
+      const soUrl = 'https://api.stackexchange.com/2.3/questions?order=desc&sort=votes&tagged=javascript;debugging&site=stackoverflow&filter=!20aKG._8Oscv*6djs8Pgm&pagesize=10';
+      const response = await axios.get(soUrl, {
         timeout: 15000,
         headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh) NataIDE/1.0' }
       });
 
-      if (Array.isArray(response.data)) {
-        for (const article of response.data) {
-          const id = `devto_${article.id}`;
+      if (response.data && Array.isArray(response.data.items)) {
+        for (const question of response.data.items) {
+          const id = `stackoverflow_${question.question_id}`;
           if (!existingIds.has(id)) {
+            // Temukan jawaban terbaik
+            let bestAnswer = null;
+            if (Array.isArray(question.answers) && question.answers.length > 0) {
+              bestAnswer = question.answers.find(a => a.is_accepted) || 
+                           question.answers.sort((a, b) => b.score - a.score)[0];
+            }
+
+            // Susun deskripsi lengkap berisi pertanyaan dan jawaban terbaik
+            let description = `### PERTANYAAN (BUG REPORT)\n\n${cleanHtml(question.body)}\n\n`;
+            if (bestAnswer) {
+              description += `### JAWABAN TERBAIK (SOLUSI)\n\n${cleanHtml(bestAnswer.body)}\n`;
+            } else {
+              description += `### JAWABAN TERBAIK (SOLUSI)\n\n(Tidak ada jawaban yang tersedia)\n`;
+            }
+
             db.queue.push({
               id,
-              devtoId: article.id,
-              title: article.title,
-              url: article.url,
-              source: 'Dev.to',
-              description: article.description || article.body_markdown?.slice(0, 200) || 'Tidak ada deskripsi.',
-              tags: article.tag_list || [],
+              soId: question.question_id,
+              title: question.title,
+              url: question.link,
+              source: 'StackOverflow',
+              description: description.slice(0, 4000), // Batasi ukuran konten
+              tags: question.tags || [],
               fetchedAt: Date.now(),
               status: 'pending'
             });
@@ -115,14 +187,15 @@ export async function fetchMaterials() {
           }
         }
       }
+    } catch (err) {
+      console.warn('Gagal menarik materi dari Stack Overflow:', err.message);
     }
 
     db.stats.lastFetchedDate = today;
     writeDb(db);
 
-    return `🎉 Berhasil menarik ${newCount} materi belajar pemrograman baru dari Dev.to!`;
+    return `🎉 Berhasil menarik ${newCount} materi belajar pemrograman baru!`;
   } catch (err) {
-    // Jika offline atau error, lempar agar UI tahu
     throw new Error(`Koneksi internet bermasalah atau API rate limit: ${err.message}`);
   }
 }

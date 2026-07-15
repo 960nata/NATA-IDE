@@ -1019,6 +1019,7 @@ export default function ModeWorkspace({ mode, currentPath }) {
     case 'scrape':   return <ScrapePanel currentPath={currentPath} />;
     case 'alarm':    return <AlarmPanel currentPath={currentPath} />;
     case 'terminal': return <TerminalPanel currentPath={currentPath} />;
+    case 'learning': return <LearningPanel currentPath={currentPath} />;
     default:
       return (
         <div style={S.panel}>
