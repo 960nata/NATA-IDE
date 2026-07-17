@@ -2244,7 +2244,20 @@ CARA BERSIKAP (PENTING):
 - User cuma ngobrol/nanya (salam, pertanyaan umum, minta pendapat/penjelasan)? → JAWAB LANGSUNG dengan santai dan singkat dalam bahasa user, kayak temen ngobrol. JANGAN pakai tool, JANGAN nyebut file/folder, JANGAN nulis kode, JANGAN kaku kayak robot.
 - User minta DIKERJAIN sesuatu (bikin file/kode/dokumen/gambar, install, jalankan, ubah)? → baru kerja pakai format:
   • Terminal: \`\`\`bash\nperintah\n\`\`\`   • Tulis file: \`\`\`write:path/file.ext\nisi\n\`\`\`   • Edit file: \`\`\`edit:path\`\`\` (SEARCH/REPLACE)
-  • Dokumen/media: \`\`\`tool:create_word\n{"filename":"x.docx","title":"Judul","content":["..."]}\n\`\`\` — juga: create_pdf, create_pptx, image_resize, image_convert, image_ocr, generate_image, analyze_image (analisa gambar), video_frames (frame video), open_url (buka browser), scrape, notify, alarm.
+  • Dokumen/media: \`\`\`tool:create_word\n{"filename":"x.docx","title":"Judul","content":["..."]}\n\`\`\` — juga: create_pdf, create_pptx, image_resize, image_convert, image_ocr, generate_image, analyze_image (analisa gambar), video_frames (frame video), open_url (buka browser), scrape, notify.
+  • Alarm & Agenda (BUAT JADWAL/ALARM) — panggil tool format \`\`\`tool:nama\n{JSON}\n\`\`\`:
+    - alarm {"message":"...","minutes":25} ATAU {"message":"...","at":"15:00"} (jam pasti). Berulang: tambah "daily":true atau "every_minutes":60.
+    - list_alarms {}
+    - cancel_alarm {"id":"..."} atau {"message":"kata kunci"}.
+    - todo_add {"text":"..."}
+    - todo_done {"id":"..."} atau {"text":"kata kunci"}
+    - todo_delete {"id":"..."} atau {"text":"kata kunci"}
+    - todo_list {}
+- ATURAN ALARM & AGENDA:
+  - Konversi waktu natural dengan benar: "jam 6:30 pagi" → at:"06:30" · "tiap pagi jam 7" → at:"07:00"+daily:true · "setengah jam" → minutes:30.
+  - User nyebut banyak tugas sekaligus atau jadwal mingguan → panggil todo_add BERKALI-KALI, satu per tugas/agenda.
+  - Kalau user cerita rencana atau jadwal ("hari senin jam 8 meeting, jam 10 coding"), masukkan sebagai agenda via todo_add (dan/atau pasang alarm).
+  - Konfirmasi singkat setelah aksi. Jawab bahasa user.
 - Tugas gede multi-langkah → tulis rencana dulu di blok \`\`\`tasks berisi baris "[ ] langkah".
 - Jawabanmu sering DIBACAKAN pakai suara — tulis natural kayak orang ngomong, kalimat pendek, tanpa simbol/markdown berlebihan.`,
       image: `Kamu adalah Nata Studio Gambar — asisten pengolah gambar lokal.
@@ -3148,10 +3161,12 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
       <div style={{
         flex: 1,
         overflowY: 'auto',
+        overflowX: 'hidden',
         padding: '16px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px'
+        gap: '16px',
+        minWidth: 0
       }}>
         {messages.map((msg, index) => {
           if (msg.role === 'user') {
@@ -3246,6 +3261,8 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
                 style={{
                   alignSelf: 'flex-start',
                   width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '8px',
@@ -3277,7 +3294,9 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
                 {/* Render parsed contents (text, write, command, tool, question) */}
                 <div className="sel" style={{
                   fontSize: '13px', lineHeight: '1.5', color: '#e3e3e6',
-                  display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '18px'
+                  display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '18px',
+                  minWidth: 0,
+                  maxWidth: '100%'
                 }}>
                   {msg.parsed && msg.parsed.map((part, pIdx) => {
                     if (part.type === 'text') {
@@ -3507,7 +3526,7 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
           }
         })}
         {loading && (
-          <div style={{ alignSelf: 'flex-start', width: '100%' }}>
+          <div style={{ alignSelf: 'flex-start', width: '100%', minWidth: 0, maxWidth: '100%', display: 'flex', flexDirection: 'column' }}>
             <TaskCard tasks={agentTasks} />
             {renderTimeline(thinkingSteps, true, agentStatus && !agentStatus.startsWith('🔍') ? agentStatus : 'Simmering...')}
             {/* Jawaban yang lagi diketik live — keliatan kerja AI real-time */}
@@ -3515,6 +3534,10 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
               <div className="md-body sel" style={{
                 marginTop: '10px', fontSize: '13px', lineHeight: 1.6, color: '#e3e3e6',
                 borderLeft: '2px solid rgba(96,165,250,0.4)', paddingLeft: '12px',
+                minWidth: 0,
+                maxWidth: '100%',
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word'
               }}>
                 <ReactMarkdown>{streamingReply}</ReactMarkdown>
                 <span style={{ display: 'inline-block', width: '7px', height: '14px', background: '#60a5fa', marginLeft: '2px', verticalAlign: 'text-bottom', animation: 'blink 1s step-end infinite' }} />

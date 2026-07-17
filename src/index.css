@@ -51,7 +51,7 @@ body {
 }
 
 /* ── Markdown output (chat AI) ─────────────────────────────────────────── */
-.md-body { line-height: 1.6; font-size: 13px; color: #e3e3e6; }
+.md-body { line-height: 1.6; font-size: 13px; color: #e3e3e6; word-break: break-word; overflow-wrap: break-word; max-width: 100%; min-width: 0; }
 .md-body p  { margin: 0 0 8px 0; }
 .md-body p:last-child { margin-bottom: 0; }
 .md-body strong { font-weight: 700; color: #ffffff; }

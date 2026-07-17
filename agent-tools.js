@@ -325,7 +325,7 @@ async function cancel_alarm({ id, message }, _ctx) {
 async function todo_add({ text }, _ctx) {
   if (!text || !String(text).trim()) throw new Error('Butuh "text".');
   const todos = readJsonFile(TODOS_FILE, []);
-  todos.push({ id: newId(), text: String(text).trim(), done: false, createdAt: Date.now() });
+  todos.push({ id: newId(), text: String(text).trim(), done: false, status: 'todo', createdAt: Date.now() });
   writeJsonFile(TODOS_FILE, todos);
   return `📋 Ditambah ke agenda: "${String(text).trim()}"`;
 }
@@ -335,6 +335,7 @@ async function todo_done({ id, text }, _ctx) {
   const t = todos.find(x => (id && x.id === String(id).trim()) || (text && x.text.toLowerCase().includes(String(text).toLowerCase())));
   if (!t) throw new Error('Tugas tidak ketemu di agenda.');
   t.done = !t.done;
+  t.status = t.done ? 'done' : 'todo';
   writeJsonFile(TODOS_FILE, todos);
   return t.done ? `✅ Kelar: "${t.text}"` : `⬜ Dibuka lagi: "${t.text}"`;
 }
@@ -596,6 +597,22 @@ async function rename_file({ oldPath, newPath }, ctx) {
 
 async function run_terminal({ command }, ctx) {
   if (!command) throw new Error('Butuh argumen "command".');
+  
+  // Bersihkan perintah dari komentar (#) dan prefix prompt ($ atau >) akibat halusinasi model kecil
+  const cleanedCommand = String(command || '')
+    .split('\n')
+    .map(line => {
+      let trimmed = line.trim();
+      if (trimmed.startsWith('#')) return '';
+      return line.replace(/^(\s*[\$>]\s+)/, '');
+    })
+    .filter(line => line.trim() !== '')
+    .join('\n');
+
+  if (!cleanedCommand) {
+    return 'Komentar dilewati, tidak ada perintah terminal dijalankan.';
+  }
+
   const { spawn } = await import('child_process');
   
   return new Promise((resolve, reject) => {
@@ -606,7 +623,7 @@ async function run_terminal({ command }, ctx) {
     const effectiveCwd = ctx.cwd || process.cwd();
     
     // Gunakan login shell agar PATH, Homebrew, nvm, dll. ter-load secara otomatis
-    const child = spawn(shell, ['-l', '-c', command], {
+    const child = spawn(shell, ['-l', '-c', cleanedCommand], {
       cwd: effectiveCwd,
       env: {
         ...process.env,

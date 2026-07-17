@@ -202,14 +202,29 @@ ipcMain.handle('execute-command', async (event, { command, cwd, processId }) => 
       return resolve({ success: false, error: '⚠️ Perintah diblokir demi keamanan sistem Anda (terdeteksi perintah destruktif).' });
     }
 
-    console.log(`Executing: ${command} in ${cwd || process.cwd()}`);
+    // Bersihkan perintah dari komentar (#) dan prefix prompt ($ atau >) akibat halusinasi model kecil
+    const cleanedCommand = String(command || '')
+      .split('\n')
+      .map(line => {
+        let trimmed = line.trim();
+        if (trimmed.startsWith('#')) return ''; // Lewati baris komentar
+        return line.replace(/^(\s*[\$>]\s+)/, ''); // Hapus prefix '$ ' atau '> ' di awal
+      })
+      .filter(line => line.trim() !== '')
+      .join('\n');
+
+    if (!cleanedCommand) {
+      return resolve({ success: true, stdout: '(hanya komentar, tidak ada perintah dijalankan)' });
+    }
+
+    console.log(`Executing: ${cleanedCommand} (original: ${command}) in ${cwd || process.cwd()}`);
     
     // Spawn shell to execute command
     // On Mac, we run inside zsh or bash
     const shell = process.env.SHELL || '/bin/zsh';
     // -l = login shell → load ~/.zprofile sehingga PATH Homebrew/nvm masuk
     const effectiveCwd = cwd || process.cwd();
-    const child = spawn(shell, ['-l', '-c', command], {
+    const child = spawn(shell, ['-l', '-c', cleanedCommand], {
       cwd: effectiveCwd,
       env: {
         ...process.env,
