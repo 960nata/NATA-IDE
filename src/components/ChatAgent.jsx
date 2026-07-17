@@ -3693,6 +3693,90 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
           </div>
         )}
 
+        {/* Coding Quick-Actions Bar (Only in Programmer & Terminal modes) */}
+        {(mode === 'programmer' || mode === 'terminal') && (
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }} className="no-scrollbar">
+            <button
+              onClick={() => selectSkill(BUILTIN_SKILLS.find(s => s.name === 'fix'))}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: '6px', padding: '4px 8px', color: '#f87171',
+                fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+            >
+              <Wrench size={11} /> Fix
+            </button>
+            <button
+              onClick={() => selectSkill(BUILTIN_SKILLS.find(s => s.name === 'explain'))}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.25)',
+                borderRadius: '6px', padding: '4px 8px', color: '#38bdf8',
+                fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(56,189,248,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(56,189,248,0.08)'}
+            >
+              <MessageSquarePlus size={11} /> Explain
+            </button>
+            <button
+              onClick={() => selectSkill(BUILTIN_SKILLS.find(s => s.name === 'review'))}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)',
+                borderRadius: '6px', padding: '4px 8px', color: '#c084fc',
+                fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(167,139,250,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(167,139,250,0.08)'}
+            >
+              <Sparkles size={11} /> Review
+            </button>
+            <button
+              onClick={() => selectSkill(BUILTIN_SKILLS.find(s => s.name === 'optimize'))}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)',
+                borderRadius: '6px', padding: '4px 8px', color: '#34d399',
+                fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(52,211,153,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(52,211,153,0.08)'}
+            >
+              <Zap size={11} /> Optimize
+            </button>
+            <button
+              onClick={() => selectSkill(BUILTIN_SKILLS.find(s => s.name === 'test'))}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)',
+                borderRadius: '6px', padding: '4px 8px', color: '#fbbf24',
+                fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(251,191,36,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(251,191,36,0.08)'}
+            >
+              <Check size={11} /> Test
+            </button>
+            <button
+              onClick={() => selectSkill(BUILTIN_SKILLS.find(s => s.name === 'refactor'))}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)',
+                borderRadius: '6px', padding: '4px 8px', color: '#fb7185',
+                fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(244,63,94,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(244,63,94,0.08)'}
+            >
+              <CornerUpLeft size={11} /> Refactor
+            </button>
+          </div>
+        )}
+
         {/* Text Input Row */}
         <div style={{
           display: 'flex',
@@ -3940,7 +4024,7 @@ ATURAN WAJIB (Harus dipatuhi oleh model lokal kecil):
               }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              Log
+              Walkthrough
             </button>
 
             {/* Plan / Auto mode toggle */}

@@ -101,6 +101,7 @@ function SettingsModal({ open, onClose }) {
   const [minimap, setMinimap] = useState(localStorage.getItem('nata_minimap') !== 'off');
   const [stickyScroll, setStickyScroll] = useState(localStorage.getItem('nata_sticky_scroll') !== 'off');
   const [gitBlame, setGitBlame] = useState(localStorage.getItem('nata_git_blame') !== 'off');
+  const [onboarding, setOnboarding] = useState(localStorage.getItem('nata_onboarded') !== 'true');
 
   React.useEffect(() => { if (open) {
     setModel(localStorage.getItem('nata_model') || 'qwen3:4b-instruct');
@@ -111,6 +112,7 @@ function SettingsModal({ open, onClose }) {
     setMinimap(localStorage.getItem('nata_minimap') !== 'off');
     setStickyScroll(localStorage.getItem('nata_sticky_scroll') !== 'off');
     setGitBlame(localStorage.getItem('nata_git_blame') !== 'off');
+    setOnboarding(localStorage.getItem('nata_onboarded') !== 'true');
   } }, [open]);
   if (!open) return null;
   const save = () => {
@@ -122,6 +124,7 @@ function SettingsModal({ open, onClose }) {
     localStorage.setItem('nata_minimap', minimap ? 'on' : 'off');
     localStorage.setItem('nata_sticky_scroll', stickyScroll ? 'on' : 'off');
     localStorage.setItem('nata_git_blame', gitBlame ? 'on' : 'off');
+    localStorage.setItem('nata_onboarded', onboarding ? 'false' : 'true');
     onClose(true);
   };
   const row = { display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '16px' };
@@ -163,6 +166,10 @@ function SettingsModal({ open, onClose }) {
         <div style={{ ...row, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <span style={lbl}>Inline Git Blame</span>
           <button onClick={() => setGitBlame(v => !v)} style={{ ...inp, cursor: 'pointer', color: gitBlame ? '#34d399' : '#6b7280', fontWeight: 700, padding: '4px 10px' }}>{gitBlame ? 'ON' : 'OFF'}</button>
+        </div>
+        <div style={{ ...row, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <span style={lbl}>Panduan Awal (Walkthrough Tour)</span>
+          <button onClick={() => setOnboarding(v => !v)} style={{ ...inp, cursor: 'pointer', color: onboarding ? '#34d399' : '#6b7280', fontWeight: 700, padding: '4px 10px' }}>{onboarding ? 'ON' : 'OFF'}</button>
         </div>
         <div style={row}>
           <span style={lbl}>URL Update Feed (opsional)</span>
